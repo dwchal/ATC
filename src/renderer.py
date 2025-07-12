@@ -64,6 +64,9 @@ class Renderer:
         # Draw compass points
         self._draw_compass_points()
         
+        # Draw airport layout
+        self._draw_airport(game_state.active_airport)
+
         # Draw waypoints
         for name, waypoint in game_state.waypoints.items():
             screen_pos = self._world_to_screen(waypoint['position'])
@@ -91,6 +94,18 @@ class Renderer:
     def _world_to_screen(self, position):
         screen_pos = position * self.scale_factor + self.radar_center
         return screen_pos.astype(int)
+
+    def _draw_airport(self, airport):
+        # Draw runways
+        for runway in airport.runways:
+            start_pos = self._world_to_screen(runway['start_pos'])
+            end_pos = self._world_to_screen(runway['end_pos'])
+            pygame.draw.line(self.screen, GRAY, start_pos, end_pos, int(runway['width'] / 100 * self.scale_factor))
+
+        # Draw taxiways
+        for taxiway in airport.taxiways:
+            points = [self._world_to_screen(p) for p in taxiway]
+            pygame.draw.lines(self.screen, GRAY, False, points, 2)
 
     def _draw_aircraft(self, aircraft, is_selected):
         screen_pos = self._world_to_screen(aircraft.position)
