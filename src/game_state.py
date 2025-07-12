@@ -2,9 +2,12 @@ import random
 import numpy as np
 from aircraft import Aircraft
 from config import MIN_SEPARATION_HORIZONTAL, MIN_SEPARATION_VERTICAL, RADAR_RANGE
+from airport_data import create_airports
 
 class GameState:
-    def __init__(self):
+    def __init__(self, airport_icao):
+        self.airports = create_airports()
+        self.active_airport = self.airports[airport_icao]
         self.aircraft = {}  # Dictionary of active aircraft
         self.waypoints = {}  # Dictionary of waypoints
         self.selected_aircraft = None
@@ -26,17 +29,18 @@ class GameState:
         }
 
     def _initialize_waypoints(self):
-        # Add some standard waypoints for the airspace
-        standard_waypoints = {
-            'NORTH': (0, RADAR_RANGE * 0.8),
-            'SOUTH': (0, -RADAR_RANGE * 0.8),
-            'EAST': (RADAR_RANGE * 0.8, 0),
-            'WEST': (-RADAR_RANGE * 0.8, 0),
-            'CENTER': (0, 0)
-        }
-        
-        for name, pos in standard_waypoints.items():
-            self.waypoints[name] = {'position': np.array(pos), 'type': 'fix'}
+        # Add waypoints based on the active airport's runway ends
+        for runway in self.active_airport.runways:
+            start_name = f"R{runway['name'].split('/')[0]}"
+            end_name = f"R{runway['name'].split('/')[1]}"
+            self.waypoints[start_name] = {'position': runway['start_pos'], 'type': 'runway'}
+            self.waypoints[end_name] = {'position': runway['end_pos'], 'type': 'runway'}
+
+        # Add some standard approach waypoints
+        self.waypoints['APP_N'] = {'position': np.array([0, 20]), 'type': 'fix'}
+        self.waypoints['APP_S'] = {'position': np.array([0, -20]), 'type': 'fix'}
+        self.waypoints['APP_E'] = {'position': np.array([20, 0]), 'type': 'fix'}
+        self.waypoints['APP_W'] = {'position': np.array([-20, 0]), 'type': 'fix'}
 
     def update(self, simulation_speed):
         dt = 1.0 / 60.0  # Fixed time step
@@ -94,15 +98,22 @@ class GameState:
         
         # Random initial altitude between 15000 and 35000 feet
         altitude = random.randint(150, 350) * 100
-        
-        # Add the new aircraft
-        self.add_aircraft(
+
+        # Create a new aircraft
+        new_aircraft = Aircraft(
             callsign=callsign,
             aircraft_type=aircraft_type,
             position=position,
             altitude=altitude,
             heading=heading
         )
+
+        # Assign a destination waypoint (one of the runway ends)
+        destination_waypoint = random.choice(list(self.waypoints.values()))
+        new_aircraft.add_waypoint(destination_waypoint['position'])
+
+        # Add the new aircraft
+        self.aircraft[callsign] = new_aircraft
 
     def _update_score(self):
         # Decrease score for each conflict

@@ -4,16 +4,17 @@ from game_state import GameState
 from renderer import Renderer
 from input_handler import InputHandler
 from config import WINDOW_WIDTH, WINDOW_HEIGHT, FPS
+from menu import Menu
 
 class ATCGame:
-    def __init__(self):
+    def __init__(self, airport_icao):
         pygame.init()
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption("Air Traffic Control Simulator")
         self.clock = pygame.time.Clock()
         
         self.renderer = Renderer(self.screen)
-        self.game_state = GameState()
+        self.game_state = GameState(airport_icao)
         self.game_state.renderer = self.renderer  # Add renderer reference to game state
         self.input_handler = InputHandler()
         
@@ -56,5 +57,11 @@ class ATCGame:
         sys.exit()
 
 if __name__ == "__main__":
-    game = ATCGame()
-    game.run() 
+    pygame.init()
+    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    menu = Menu(screen)
+    airport_icao = menu.run()
+
+    if airport_icao:
+        game = ATCGame(airport_icao)
+        game.run()
